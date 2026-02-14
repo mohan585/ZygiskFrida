@@ -98,10 +98,31 @@ if [ "$IS64BIT" = true ]; then
   rm "$TMP_MODULE_DIR/libgadget32.so.xz"
 fi
 
+ui_print "- Installing config.json"
 extract "$ZIPFILE" "config.json.example" "$MODPATH" true
-if [ ! -f "$MODPATH/config.json" ]; then
+
+if [ -f "$MODPATH/config.json.example" ]; then
   mv "$MODPATH/config.json.example" "$MODPATH/config.json"
+  ui_print "- Config installed from zip"
+else
+  ui_print "! config.json.example missing in zip, generating default config"
+  # Create a default config targeting the user's requested app
+  echo '{
+    "targets": [
+        {
+            "app_name": "com.dashtoon.video.reels",
+            "enabled": true,
+            "injected_libraries": [
+                {
+                    "path": "/data/local/tmp/re.zyg.fri/libgadget.so"
+                }
+            ]
+        }
+    ]
+}' > "$MODPATH/config.json"
 fi
+
+chmod 644 "$MODPATH/config.json"
 
 set_perm_recursive "$TMP_MODULE_DIR" 0 0 0755 0644
 set_perm_recursive "$MODPATH" 0 0 0755 0644
