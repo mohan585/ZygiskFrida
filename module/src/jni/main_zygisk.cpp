@@ -21,7 +21,7 @@ class MyModule : public zygisk::ModuleBase {
         std::string app_name = std::string(raw_app_name);
         this->env->ReleaseStringUTFChars(args->nice_name, raw_app_name);
 
-        std::string module_dir = std::string("/data/local/tmp/re.zyg.fri");
+        std::string module_dir = std::string("/data/adb/modules/zygiskfrida");
         int module_fd = api->getModuleDir();
         this->cfg = load_config(module_dir, module_fd, app_name);
         
