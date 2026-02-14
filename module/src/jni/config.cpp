@@ -157,6 +157,7 @@ static std::vector<std::string> parse_injected_libraries(std::string const &modu
 static std::optional<target_config> load_simple_config(std::string const &module_dir, std::string const &app_name) {
     std::ifstream config_file(module_dir + "/target_packages");
     if (!config_file.is_open()) {
+        LOGD("Failed to open simple config: %s/target_packages (errno=%d)", module_dir.c_str(), errno);
         return std::nullopt;
     }
 
@@ -168,6 +169,7 @@ static std::optional<target_config> load_simple_config(std::string const &module
 
         auto splitted = split(line, ',');
         if (splitted[0] != app_name) {
+            // LOGD("Simple config mismatch: '%s' != '%s'", splitted[0].c_str(), app_name.c_str());
             continue;
         }
 
