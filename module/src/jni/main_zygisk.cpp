@@ -1,6 +1,9 @@
 #include <string>
 #include <thread>
 
+#include <unistd.h>
+#include <limits.h>
+
 #include "inject.h"
 #include "log.h"
 #include "zygisk.h"
@@ -16,8 +19,7 @@ class MyModule : public zygisk::ModuleBase {
         this->env = env;
     }
 
-#include <unistd.h>
-#include <limits.h>
+
 
     void preAppSpecialize(AppSpecializeArgs *args) override {
         const char *raw_app_name = env->GetStringUTFChars(args->nice_name, nullptr);
