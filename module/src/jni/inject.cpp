@@ -88,7 +88,7 @@ void inject_lib(std::string const &lib_path, std::string const &logContext) {
     LOGE("%sFailed to inject %s (dlopen): %s", logContext.c_str(), lib_path.c_str(), dl_err);
 }
 
-static void inject_libs(target_config const &cfg) {
+void start_injection(target_config const &cfg) {
     // We need to wait for process initialization to complete.
     // Loading the gadget before that will freeze the process
     // before the init has completed. This make the process
@@ -125,7 +125,7 @@ bool check_and_inject(std::string const &app_name) {
         return false;
     }
 
-    std::thread inject_thread(inject_libs, target_config);
+    std::thread inject_thread(start_injection, target_config);
     inject_thread.detach();
 
     return true;
