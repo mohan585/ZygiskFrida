@@ -15,23 +15,33 @@ class MyModule : public zygisk::ModuleBase {
         this->env = env;
     }
 
-    void postAppSpecialize(const AppSpecializeArgs *args) override {
+    void preAppSpecialize(const AppSpecializeArgs *args) override {
         const char *raw_app_name = env->GetStringUTFChars(args->nice_name, nullptr);
-
         std::string app_name = std::string(raw_app_name);
         this->env->ReleaseStringUTFChars(args->nice_name, raw_app_name);
 
-        if (!check_and_inject(app_name)) {
-            // LOGD("App spec: %s (injection skipped)", app_name.c_str());
-            this->api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
+        std::string module_dir = std::string("/data/local/tmp/re.zyg.fri");
+        this->cfg = load_config(module_dir, app_name);
+        
+        if (this->cfg.has_value()) {
+            LOGI("Pre-app spec: Loaded config for %s", app_name.c_str());
+        }
+    }
+
+    void postAppSpecialize(const AppSpecializeArgs *args) override {
+        if (this->cfg.has_value() && this->cfg->enabled) {
+            LOGI("App spec: INJECTION STARTED");
+            std::thread inject_thread(start_injection, this->cfg.value());
+            inject_thread.detach();
         } else {
-            LOGI("App spec: %s (INJECTION STARTED)", app_name.c_str());
+            this->api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
         }
     }
 
  private:
     Api *api;
     JNIEnv *env;
+    std::optional<target_config> cfg;
 };
 
 REGISTER_ZYGISK_MODULE(MyModule)
