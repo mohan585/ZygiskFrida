@@ -1,4 +1,5 @@
 #include <string>
+#include <thread>
 
 #include "inject.h"
 #include "log.h"
@@ -15,7 +16,7 @@ class MyModule : public zygisk::ModuleBase {
         this->env = env;
     }
 
-    void preAppSpecialize(const AppSpecializeArgs *args) override {
+    void preAppSpecialize(AppSpecializeArgs *args) override {
         const char *raw_app_name = env->GetStringUTFChars(args->nice_name, nullptr);
         std::string app_name = std::string(raw_app_name);
         this->env->ReleaseStringUTFChars(args->nice_name, raw_app_name);
