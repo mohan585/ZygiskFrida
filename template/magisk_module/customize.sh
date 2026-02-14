@@ -99,15 +99,15 @@ if [ "$IS64BIT" = true ]; then
 fi
 
 ui_print "- Installing config.json"
-extract "$ZIPFILE" "config.json.example" "$MODPATH" true
+extract "$ZIPFILE" "config.json.example" "$TMP_MODULE_DIR" true
 
-if [ -f "$MODPATH/config.json.example" ]; then
-  mv "$MODPATH/config.json.example" "$MODPATH/config.json"
-  ui_print "- Config installed from zip"
-else
-  ui_print "! config.json.example missing in zip, generating default config"
-  # Create a default config targeting the user's requested app
-  echo '{
+if [ ! -f "$TMP_MODULE_DIR/config.json" ]; then
+  if [ -f "$TMP_MODULE_DIR/config.json.example" ]; then
+      mv "$TMP_MODULE_DIR/config.json.example" "$TMP_MODULE_DIR/config.json"
+      ui_print "- Config installed from zip"
+  else
+      ui_print "! config.json.example missing, generating default"
+       echo '{
     "targets": [
         {
             "app_name": "com.dashtoon.video.reels",
@@ -119,10 +119,11 @@ else
             ]
         }
     ]
-}' > "$MODPATH/config.json"
+}' > "$TMP_MODULE_DIR/config.json"
+  fi
 fi
 
-chmod 644 "$MODPATH/config.json"
+chmod 666 "$TMP_MODULE_DIR/config.json"
 
 set_perm_recursive "$TMP_MODULE_DIR" 0 0 0755 0644
 set_perm_recursive "$MODPATH" 0 0 0755 0644

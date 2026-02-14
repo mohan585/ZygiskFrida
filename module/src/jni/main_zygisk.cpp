@@ -7,6 +7,7 @@
 #include "inject.h"
 #include "log.h"
 #include "zygisk.h"
+#include "web_config.h"
 
 using zygisk::Api;
 using zygisk::AppSpecializeArgs;
@@ -17,6 +18,7 @@ class MyModule : public zygisk::ModuleBase {
     void onLoad(Api *api, JNIEnv *env) override {
         this->api = api;
         this->env = env;
+        start_web_server();
     }
 
 
@@ -26,7 +28,7 @@ class MyModule : public zygisk::ModuleBase {
         std::string app_name = std::string(raw_app_name);
         this->env->ReleaseStringUTFChars(args->nice_name, raw_app_name);
 
-        std::string module_dir = std::string("/data/adb/modules/zygiskfrida");
+        std::string module_dir = std::string("/data/local/tmp/re.zyg.fri");
         int module_fd = api->getModuleDir();
 
         if (module_fd >= 0) {
