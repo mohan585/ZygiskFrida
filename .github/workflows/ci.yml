@@ -22,6 +22,13 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew :module:assembleRelease
+      - name: Debug Output Files
+        if: always()
+        run: |
+          echo "Listing module/build directory recursively:"
+          ls -R module/build || true
+          echo "Finding all .so files:"
+          find module/build -name "*.so" || true
       - name: Get Module Version
         id: module-version
         run: |
