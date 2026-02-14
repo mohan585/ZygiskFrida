@@ -4,11 +4,41 @@
 #include <fstream>
 #include <sstream>
 #include <optional>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "rapidjson/document.h"
 #include "rapidjson/istreamwrapper.h"
 #include "rapidjson/error/en.h"
 #include "log.h"
+
+// Helper to read file from FD or path
+static std::optional<std::string> read_file_content(std::string const &path, int dir_fd, std::string const &filename) {
+    if (dir_fd > 0) {
+        int fd = openat(dir_fd, filename.c_str(), O_RDONLY);
+        if (fd < 0) {
+             LOGD("Failed to openat config: %s (errno=%d)", filename.c_str(), errno);
+             return std::nullopt;
+        }
+        std::string content;
+        char buffer[1024];
+        ssize_t bytes_read;
+        while ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0) {
+            content.append(buffer, bytes_read);
+        }
+        close(fd);
+        return content;
+    } else {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+             LOGD("Failed to open config: %s (errno=%d)", path.c_str(), errno);
+             return std::nullopt;
+        }
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        return buffer.str();
+    }
+}
 
 // This must work in a non-exception environment as the libcxx we use don't have support for exception.
 // Should avoid any libraries aborting on parse error as this will run on every app start and
@@ -132,37 +162,35 @@ static std::vector<std::string> split(std::string const &str, char delimiter) {
     return result;
 }
 
-static std::vector<std::string> parse_injected_libraries(std::string const &module_dir) {
-    auto config_file_path = module_dir + "/injected_libraries";
-
-    std::ifstream config_file(config_file_path);
-    if (!config_file.is_open()) {
+static std::vector<std::string> parse_injected_libraries(std::string const &module_dir, int module_dir_fd) {
+    auto content_opt = read_file_content(module_dir + "/injected_libraries", module_dir_fd, "injected_libraries");
+    
+    if (!content_opt.has_value()) {
         return {module_dir + "/libgadget.so"};
     }
 
     std::vector<std::string> injected_libraries;
-
+    std::stringstream ss(content_opt.value());
     std::string libpath;
-    while (getline(config_file, libpath)) {
+    while (getline(ss, libpath)) {
         if (!libpath.empty()) {
             injected_libraries.push_back(libpath);
         }
     }
 
-    config_file.close();
-
     return injected_libraries;
 }
 
-static std::optional<target_config> load_simple_config(std::string const &module_dir, std::string const &app_name) {
-    std::ifstream config_file(module_dir + "/target_packages");
-    if (!config_file.is_open()) {
-        LOGD("Failed to open simple config: %s/target_packages (errno=%d)", module_dir.c_str(), errno);
+static std::optional<target_config> load_simple_config(std::string const &module_dir, int module_dir_fd, std::string const &app_name) {
+    auto content_opt = read_file_content(module_dir + "/target_packages", module_dir_fd, "target_packages");
+    
+    if (!content_opt.has_value()) {
         return std::nullopt;
     }
 
+    std::stringstream ss(content_opt.value());
     std::string line;
-    while (getline(config_file, line)) {
+    while (getline(ss, line)) {
         if (line.empty()) {
             continue;
         }
@@ -183,27 +211,23 @@ static std::optional<target_config> load_simple_config(std::string const &module
         if (splitted.size() >= 2) {
             cfg.start_up_delay_ms = std::strtoul(splitted[1].c_str(), nullptr, 10);
         }
-        cfg.injected_libraries = parse_injected_libraries(module_dir);
+        cfg.injected_libraries = parse_injected_libraries(module_dir, module_dir_fd);
 
-        config_file.close();
         return cfg;
     }
 
-    config_file.close();
     return std::nullopt;
 }
 
-static std::optional<target_config> load_advanced_config(std::string const &module_dir, std::string const &app_name) {
-    std::ifstream config_file(module_dir + "/config.json");
-    if (!config_file.is_open()) {
+static std::optional<target_config> load_advanced_config(std::string const &module_dir, int module_dir_fd, std::string const &app_name) {
+    auto content_opt = read_file_content(module_dir + "/config.json", module_dir_fd, "config.json");
+    
+    if (!content_opt.has_value()) {
         return std::nullopt;
     }
 
-    rapidjson::IStreamWrapper config_stream{config_file};
-
     rapidjson::Document doc;
-    doc.ParseStream(config_stream);
-    config_file.close();
+    doc.Parse(content_opt.value().c_str());
 
     if (doc.HasParseError()) {
         LOGE("config is not a valid json file offset %u: %s",
@@ -238,11 +262,11 @@ static std::optional<target_config> load_advanced_config(std::string const &modu
     return std::nullopt;
 }
 
-std::optional<target_config> load_config(std::string const &module_dir, std::string const &app_name) {
-    auto cfg = load_advanced_config(module_dir, app_name);
+std::optional<target_config> load_config(std::string const &module_dir, int module_dir_fd, std::string const &app_name) {
+    auto cfg = load_advanced_config(module_dir, module_dir_fd, app_name);
     if (cfg.has_value()) {
         return cfg;
     }
 
-    return load_simple_config(module_dir, app_name);
+    return load_simple_config(module_dir, module_dir_fd, app_name);
 }
