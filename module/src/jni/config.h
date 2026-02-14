@@ -20,7 +20,7 @@ struct target_config{
     child_gating_config child_gating;
 };
 
-std::optional<target_config> load_config(std::string const& module_dir, std::string const& app_name);
+std::optional<target_config> load_config(std::string const& module_dir, int module_dir_fd, std::string const& app_name);
 std::optional<target_config> parse_advanced_config(std::string const& config, std::string const& app_name);
 
 #endif  // ZYGISKFRIDA_CONFIG_H
