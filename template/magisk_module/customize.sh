@@ -98,7 +98,10 @@ if [ "$IS64BIT" = true ]; then
   rm "$TMP_MODULE_DIR/libgadget32.so.xz"
 fi
 
-extract "$ZIPFILE" "config.json.example" "$TMP_MODULE_DIR" true
+extract "$ZIPFILE" "config.json.example" "$MODPATH" true
+if [ ! -f "$MODPATH/config.json" ]; then
+  mv "$MODPATH/config.json.example" "$MODPATH/config.json"
+fi
 
 set_perm_recursive "$TMP_MODULE_DIR" 0 0 0755 0644
 set_perm_recursive "$MODPATH" 0 0 0755 0644
