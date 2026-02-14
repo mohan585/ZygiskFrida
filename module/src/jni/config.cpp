@@ -167,6 +167,10 @@ static std::optional<target_config> load_simple_config(std::string const &module
             continue;
         }
 
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+
         auto splitted = split(line, ',');
         if (splitted[0] != app_name) {
             // LOGD("Simple config mismatch: '%s' != '%s'", splitted[0].c_str(), app_name.c_str());
