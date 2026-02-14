@@ -22,7 +22,10 @@ class MyModule : public zygisk::ModuleBase {
         this->env->ReleaseStringUTFChars(args->nice_name, raw_app_name);
 
         if (!check_and_inject(app_name)) {
+            // LOGD("App spec: %s (injection skipped)", app_name.c_str());
             this->api->setOption(zygisk::Option::DLCLOSE_MODULE_LIBRARY);
+        } else {
+            LOGI("App spec: %s (INJECTION STARTED)", app_name.c_str());
         }
     }
 
