@@ -13,11 +13,11 @@
 #include "log.h"
 
 // Helper to read file from FD or path
-static std::optional<std::string> read_file_content(std::string const &path, int dir_fd, std::string const &filename) {
+static std::optional<std::string> read_file_content(std::string const &path, int dir_fd, std::string const &filename, bool quiet = false) {
     if (dir_fd > 0) {
         int fd = openat(dir_fd, filename.c_str(), O_RDONLY);
         if (fd < 0) {
-             LOGD("Failed to openat config: %s (errno=%d)", filename.c_str(), errno);
+             if (!quiet) LOGD("Failed to openat config: %s (errno=%d)", filename.c_str(), errno);
              return std::nullopt;
         }
         std::string content;
@@ -31,7 +31,7 @@ static std::optional<std::string> read_file_content(std::string const &path, int
     } else {
         std::ifstream file(path);
         if (!file.is_open()) {
-             LOGD("Failed to open config: %s (errno=%d)", path.c_str(), errno);
+             if (!quiet) LOGD("Failed to open config: %s (errno=%d)", path.c_str(), errno);
              return std::nullopt;
         }
         std::stringstream buffer;
@@ -163,7 +163,7 @@ static std::vector<std::string> split(std::string const &str, char delimiter) {
 }
 
 static std::vector<std::string> parse_injected_libraries(std::string const &module_dir, int module_dir_fd) {
-    auto content_opt = read_file_content(module_dir + "/injected_libraries", module_dir_fd, "injected_libraries");
+    auto content_opt = read_file_content(module_dir + "/injected_libraries", module_dir_fd, "injected_libraries", true);
     
     if (!content_opt.has_value()) {
         return {module_dir + "/libgadget.so"};
@@ -182,7 +182,7 @@ static std::vector<std::string> parse_injected_libraries(std::string const &modu
 }
 
 static std::optional<target_config> load_simple_config(std::string const &module_dir, int module_dir_fd, std::string const &app_name) {
-    auto content_opt = read_file_content(module_dir + "/target_packages", module_dir_fd, "target_packages");
+    auto content_opt = read_file_content(module_dir + "/target_packages", module_dir_fd, "target_packages", true);
     
     if (!content_opt.has_value()) {
         return std::nullopt;
@@ -255,9 +255,13 @@ static std::optional<target_config> load_advanced_config(std::string const &modu
 
         auto target = deserialized_target.value();
         if (target.app_name == app_name) {
+            LOGI("Config match found for app: %s", app_name.c_str());
             return target;
         }
     }
+
+    LOGD("Config loaded but no match for app: %s", app_name.c_str());
+    return std::nullopt;
 
     return std::nullopt;
 }
