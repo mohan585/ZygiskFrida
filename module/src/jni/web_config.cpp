@@ -14,7 +14,7 @@
 #define PORT 8888
 #define CONFIG_PATH "/data/local/tmp/re.zyg.fri/config.json"
 
-static const std::string HTML_DASHBOARD = R"(
+static const std::string HTML_DASHBOARD = R"HTML(
 <!DOCTYPE html>
 <html>
 <head>
@@ -75,7 +75,7 @@ static const std::string HTML_DASHBOARD = R"(
     </script>
 </body>
 </html>
-)";
+)HTML";
 
 std::string read_config() {
     std::ifstream f(CONFIG_PATH);
