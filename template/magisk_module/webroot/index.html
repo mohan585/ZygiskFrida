@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ZygiskFrida Config</title>
+    <style>
+        body { font-family: sans-serif; padding: 1rem; }
+        textarea { width: 100%; height: 300px; font-family: monospace; margin-bottom: 1rem; }
+        button { padding: 10px 20px; font-size: 1.1em; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:disabled { background: #ccc; }
+        .status { margin-top: 1rem; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>ZygiskFrida Configuration</h1>
+    <p>Edit config.json below:</p>
+    <textarea id="configArea">Loading...</textarea>
+    <br>
+    <button id="saveBtn" onclick="saveConfig()">Save Configuration</button>
+    <div id="status" class="status"></div>
+
+    <script>
+        // Use relative path since we are in /data/adb/modules/zygiskfrida/webroot/
+        // and config is in /data/adb/modules/zygiskfrida/config.json
+        const CONFIG_PATH = "../config.json";
+
+        async function exec(cmd) {
+            // Check if ksu API is available
+            if (typeof ksu === 'undefined') {
+                throw new Error("KernelSU API not found. This page must be opened from KernelSU Manager.");
+            }
+            const { errno, stdout, stderr } = await ksu.exec(cmd);
+            if (errno !== 0) {
+                throw new Error(`Command failed with errno ${errno}: ${stderr}`);
+            }
+            return stdout;
+        }
+
+        async function loadConfig() {
+            try {
+                // Use cat to read the file
+                const content = await exec(`cat "${CONFIG_PATH}"`);
+                document.getElementById('configArea').value = content;
+            } catch (e) {
+                document.getElementById('status').innerText = 'Error loading config: ' + e.message;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+
+        async function saveConfig() {
+            const btn = document.getElementById('saveBtn');
+            const status = document.getElementById('status');
+            const config = document.getElementById('configArea').value;
+            
+            btn.disabled = true;
+            status.innerText = 'Saving...';
+            status.className = 'status';
+
+            try {
+                 // Validate JSON locally first
+                JSON.parse(config);
+
+                // Write to file using echo. 
+                // Note: handling quotes in echo can be tricky, writing to a temp file then moving is safer but echo is simpler for now.
+                // We'll escape single quotes.
+                const escapedConfig = config.replace(/'/g, "'\\''");
+                await exec(`echo '${escapedConfig}' > "${CONFIG_PATH}"`);
+                
+                status.innerText = 'Saved successfully!';
+                status.className = 'status success';
+            } catch (e) {
+                status.innerText = 'Error saving: ' + e.message;
+                status.className = 'status error';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Initialize
+        if (typeof ksu !== 'undefined') {
+             loadConfig();
+        } else {
+            // Fallback for browser testing (mock) or if ksu is not ready immediately
+            setTimeout(() => {
+                 if (typeof ksu !== 'undefined') loadConfig();
+                 else {
+                     document.getElementById('configArea').value = " KernelSU API not detected.";
+                     document.getElementById('status').innerText = "Not running in KernelSU Manager?";
+                     document.getElementById('status').className = 'status error';
+                 }
+            }, 100);
+        }
+    </script>
+</body>
+</html>

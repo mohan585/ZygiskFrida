@@ -98,12 +98,15 @@ if [ "$IS64BIT" = true ]; then
   rm "$TMP_MODULE_DIR/libgadget32.so.xz"
 fi
 
-ui_print "- Installing config.json"
-extract "$ZIPFILE" "config.json.example" "$TMP_MODULE_DIR" true
+ui_print "- Installing WebUI"
+unzip -o "$ZIPFILE" 'webroot/*' -d "$MODPATH" >&2
 
-if [ ! -f "$TMP_MODULE_DIR/config.json" ]; then
-  if [ -f "$TMP_MODULE_DIR/config.json.example" ]; then
-      mv "$TMP_MODULE_DIR/config.json.example" "$TMP_MODULE_DIR/config.json"
+ui_print "- Installing config.json"
+extract "$ZIPFILE" "config.json.example" "$MODPATH" true
+
+if [ ! -f "$MODPATH/config.json" ]; then
+  if [ -f "$MODPATH/config.json.example" ]; then
+      mv "$MODPATH/config.json.example" "$MODPATH/config.json"
       ui_print "- Config installed from zip"
   else
       ui_print "! config.json.example missing, generating default"
@@ -119,11 +122,11 @@ if [ ! -f "$TMP_MODULE_DIR/config.json" ]; then
             ]
         }
     ]
-}' > "$TMP_MODULE_DIR/config.json"
+}' > "$MODPATH/config.json"
   fi
 fi
 
-chmod 666 "$TMP_MODULE_DIR/config.json"
+chmod 644 "$MODPATH/config.json"
 
 set_perm_recursive "$TMP_MODULE_DIR" 0 0 0755 0644
 set_perm_recursive "$MODPATH" 0 0 0755 0644
