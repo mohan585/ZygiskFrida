@@ -260,7 +260,7 @@ static std::optional<target_config> load_advanced_config(std::string const &modu
         }
     }
 
-    LOGD("Config loaded but no match for app: %s", app_name.c_str());
+    // LOGD("Config loaded but no match for app: %s", app_name.c_str());
     return std::nullopt;
 
     return std::nullopt;
